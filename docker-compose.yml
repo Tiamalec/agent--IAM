@@ -1,0 +1,154 @@
+# AI Agent IAM 系统 - Docker Compose 配置
+version: '3.8'
+
+services:
+  # IAM API 服务
+  iam-api:
+    build: .
+    image: agent-iam:latest
+    container_name: agent-iam-api
+    ports:
+      - "8000:8000"
+    environment:
+      - IAM_SECRET_KEY=${IAM_SECRET_KEY:-dev_secret_key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/iam_database.db}
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - FEISHU_REDIRECT_URI=${FEISHU_REDIRECT_URI}
+      - FEISHU_WEBHOOK_VERIFICATION_TOKEN=${FEISHU_WEBHOOK_VERIFICATION_TOKEN}
+      - FEISHU_WEBHOOK_ENCRYPT_KEY=${FEISHU_WEBHOOK_ENCRYPT_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=${REDIS_ENABLED:-false}
+    volumes:
+      - ./audit_logs:/app/audit_logs
+      - ./logs:/app/logs
+      - ./iam_database.db:/app/iam_database.db
+      - ./feishu_permission_mappings.json:/app/feishu_permission_mappings.json
+    depends_on:
+      - redis
+    networks:
+      - iam-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis 缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: agent-iam-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    networks:
+      - iam-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL 数据库（生产环境）
+  postgres:
+    image: postgres:15-alpine
+    container_name: agent-iam-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-iam_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-iam_password}
+      - POSTGRES_DB=${POSTGRES_DB:-iam_database}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - iam-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iam_user}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx 反向代理（生产环境）
+  nginx:
+    image: nginx:alpine
+    container_name: agent-iam-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - iam-api
+    networks:
+      - iam-network
+    restart: unless-stopped
+
+  # Prometheus 监控（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agent-iam-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - iam-network
+    restart: unless-stopped
+
+  # Grafana 仪表板（可选）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agent-iam-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - iam-network
+    restart: unless-stopped
+
+networks:
+  iam-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+# 使用说明：
+# 1. 开发环境（仅IAM API和Redis）：
+#    docker-compose up iam-api redis
+#
+# 2. 生产环境（完整堆栈）：
+#    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# 3. 查看日志：
+#    docker-compose logs -f iam-api
+#
+# 4. 停止服务：
+#    docker-compose down
+#
+# 5. 清理数据：
+#    docker-compose down -v

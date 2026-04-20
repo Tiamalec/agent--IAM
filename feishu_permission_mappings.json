@@ -1,0 +1,123 @@
+{
+  "skill_mappings": {
+    "lark-calendar": {
+      "description": "日历管理权限映射",
+      "iam_scopes": {
+        "read": ["read:calendar", "read:event"],
+        "write": ["write:calendar", "create:event", "update:event", "delete:event"],
+        "create": ["create:event"],
+        "update": ["update:event"],
+        "delete": ["delete:event"],
+        "list": ["read:calendar"],
+        "schedule": ["write:calendar", "create:event"],
+        "invite": ["write:calendar", "update:event"],
+        "cancel": ["write:calendar", "delete:event"],
+        "reschedule": ["write:calendar", "update:event"]
+      },
+      "resources": {
+        "calendar": "calendar",
+        "calendar_event": "event",
+        "schedule": "event"
+      }
+    },
+    "lark-im": {
+      "description": "即时通讯权限映射",
+      "iam_scopes": {
+        "read": ["read:message", "read:chat"],
+        "send": ["send:message"],
+        "reply": ["send:message"],
+        "forward": ["send:message"],
+        "create": ["create:chat"],
+        "update": ["update:chat"],
+        "delete": ["delete:message", "delete:chat"],
+        "search": ["read:message"],
+        "pin": ["update:chat"],
+        "unpin": ["update:chat"]
+      },
+      "resources": {
+        "message": "message",
+        "chat": "chat",
+        "user": "user"
+      }
+    },
+    "lark-doc": {
+      "description": "文档管理权限映射",
+      "iam_scopes": {
+        "read": ["read:document"],
+        "create": ["create:document"],
+        "update": ["update:document"],
+        "delete": ["delete:document"],
+        "search": ["read:document"],
+        "export": ["read:document"],
+        "import": ["write:document"]
+      },
+      "resources": {
+        "document": "document",
+        "page": "document"
+      }
+    },
+    "lark-base": {
+      "description": "多维表格权限映射",
+      "iam_scopes": {
+        "read": ["read:bitable"],
+        "create": ["create:bitable"],
+        "update": ["update:bitable"],
+        "delete": ["delete:bitable"],
+        "list": ["read:bitable"],
+        "search": ["read:bitable"],
+        "export": ["read:bitable"],
+        "import": ["write:bitable"]
+      },
+      "resources": {
+        "bitable": "bitable",
+        "database": "database"
+      }
+    },
+    "lark-task": {
+      "description": "任务管理权限映射",
+      "iam_scopes": {
+        "read": ["read:task"],
+        "create": ["create:task"],
+        "update": ["update:task"],
+        "delete": ["delete:task"],
+        "assign": ["write:task"],
+        "complete": ["update:task"],
+        "reopen": ["update:task"],
+        "prioritize": ["update:task"]
+      },
+      "resources": {
+        "task": "task",
+        "task_list": "task"
+      }
+    },
+    "iam-manager": {
+      "description": "IAM系统管理权限映射",
+      "iam_scopes": {
+        "read": ["read:iam"],
+        "create": ["create:iam"],
+        "update": ["update:iam"],
+        "delete": ["delete:iam"],
+        "manage": ["admin:iam"],
+        "configure": ["admin:iam"],
+        "monitor": ["read:iam"],
+        "audit": ["read:iam"]
+      },
+      "resources": {
+        "app": "application",
+        "tenant": "tenant",
+        "api": "api"
+      }
+    }
+  },
+  "config": {
+    "version": "1.0.0",
+    "author": "IAM System Team",
+    "description": "飞书权限映射配置文件",
+    "last_updated": "2024-01-01",
+    "notes": [
+      "此文件定义了飞书Skills到IAM Scopes的映射规则",
+      "支持JSON和YAML格式",
+      "可以通过FeishuPermissionMapper.load_config()加载"
+    ]
+  }
+}
